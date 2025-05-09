@@ -6,6 +6,7 @@ from app.models.log_entry import LogEntry
 from pydantic import BaseModel
 import asyncio
 from app.config.config import config
+from datetime import datetime, timedelta
 
 router = APIRouter()
 elastic_service = ElasticService()
@@ -154,38 +155,53 @@ async def analyze_anomaly(request: LLMAnalysisRequest):
 
         surrounding_logs = []
         try:
-            surrounding_response = elastic_service.es.search(
-                index=actual_index,
-                body={
-                    "size": 5,
-                    "query": {
-                        "bool": {
-                            "must": [
-                                {"range": {
-                                    "@timestamp": {
-                                        "gte": log_entry.timestamp,
-                                        "lte": log_entry.timestamp
-                                    }
-                                }}
-                            ]
-                        }
+            log_time = datetime.fromisoformat(log_entry.timestamp.replace("Z", "+00:00"))
+            time_before = (log_time - timedelta(minutes=5)).isoformat() + "Z"
+            time_after = (log_time + timedelta(minutes=5)).isoformat() + "Z"
+
+            surrounding_query = {
+                "size": 20,  
+                "sort": [{"@timestamp": {"order": "asc"}}],
+                "query": {
+                    "bool": {
+                        "must": [
+                            {"range": {
+                                "@timestamp": {
+                                    "gte": time_before,
+                                    "lte": time_after
+                                }
+                            }},
+                            *([{"term": {"application": log_entry.application}}] if log_entry.application else []),
+                            *([{"term": {"component": log_entry.component}}] if log_entry.component else [])
+                        ],
+                        "must_not": [
+                            {"ids": {"values": [log_entry.id]}}
+                        ]
                     }
                 }
+            }
+
+            surrounding_response = elastic_service.es.search(
+                index=actual_index,
+                body=surrounding_query
             )
+
             for hit in surrounding_response['hits']['hits']:
-                if hit['_id'] != log_entry.id:
-                    surrounding_logs.append(LogEntry(
-                        id=hit['_id'],
-                        timestamp=hit['_source'].get('@timestamp'),
-                        level=hit['_source'].get('level'),
-                        component=hit['_source'].get('component'),
-                        content=hit['_source'].get('content'),
-                        application=hit['_source'].get('application'),
-                        source_file=hit['_source'].get('source_file'),
-                        raw_log=hit['_source'].get('raw_log'),
-                        event_id=hit['_source'].get('event_id'),
-                        is_anomaly=hit['_source'].get('is_anomaly', False)
-                    ))
+                surrounding_logs.append(LogEntry(
+                    id=hit['_id'],
+                    timestamp=hit['_source'].get('@timestamp'),
+                    level=hit['_source'].get('level'),
+                    component=hit['_source'].get('component'),
+                    content=hit['_source'].get('content'),
+                    application=hit['_source'].get('application'),
+                    source_file=hit['_source'].get('source_file'),
+                    raw_log=hit['_source'].get('raw_log'),
+                    event_id=hit['_source'].get('event_id'),
+                    is_anomaly=hit['_source'].get('is_anomaly', False)
+                ))
+
+            print(f"Found {len(surrounding_logs)} surrounding logs for log ID {log_entry.id}")
+
         except Exception as e:
             print(f"Error fetching surrounding logs: {e}")
 
