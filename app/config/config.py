@@ -13,4 +13,8 @@ class Config:
         # event templates
         self.EVENT_TEMPLATES_FILE = os.getenv("EVENT_TEMPLATES_FILE")
 
+        # LLM Configuration
+        self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") 
+        self.LLM_MODEL_NAME = os.getenv("LLM_MODEL_NAME", "gemini-1.5-flash-latest") 
+
 config = Config()
