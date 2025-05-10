@@ -203,7 +203,6 @@ REQUIREMENTS:
                         generated_text = candidate["content"]["parts"][0].get("text", "")
                         
                         try:
-                            # Xử lý text để lấy JSON
                             if "```json" in generated_text:
                                 json_text = generated_text.split("```json")[1].split("```")[0].strip()
                             else:

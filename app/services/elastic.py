@@ -115,6 +115,7 @@ class ElasticService:
                 "doc": {
                     "event_id": log.event_id,
                     "is_anomaly": log.is_anomaly,
+                    "detection_timestamp": log.detection_timestamp
                 },
                 "doc_as_upsert": True
             })

@@ -127,13 +127,23 @@ class ClusteringService:
     def cluster_and_generate_templates(self, unknown_logs: List[LogEntry], event_templates: List[Event]):
         """Cluster logs and generate templates with optimized performance"""
         if not unknown_logs:
-            return []
+            return event_templates
 
         # Preprocess logs in batch_normalize_log
         contents = [self._normalize_log(log.content) for log in unknown_logs]
         
+        # Check if we have valid contents after normalization
+        valid_contents = [c for c in contents if c and len(c.strip()) > 0]
+        if not valid_contents:
+            print("No valid log contents for clustering")
+            return event_templates
+            
         # Vectorize logs
-        X = self.tfidf_vectorizer.fit_transform(contents)
+        try:
+            X = self.tfidf_vectorizer.fit_transform(valid_contents)
+        except Exception as e:
+            print(f"Error vectorizing logs: {str(e)}")
+            return event_templates
         
         # Optimize DBSCAN parameters for speed (larger eps = fewer clusters)
         clustering = DBSCAN(eps=0.5, min_samples=2, metric="cosine", n_jobs=-1).fit(X)

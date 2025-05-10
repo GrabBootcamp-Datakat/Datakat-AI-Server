@@ -15,6 +15,7 @@ llm_analyzer = LLMAnalyzerService()
 class AnomalyLogResponse(BaseModel):
     id: str
     timestamp: str
+    detection_timestamp: str
     level: str
     component: str
     content: str
@@ -95,7 +96,8 @@ async def get_latest_anomalies(limit: int = 10, offset: int = 0):
                 application=source.get('application'),
                 source_file=source.get('source_file'),
                 event_id=source.get('event_id'),
-                is_anomaly=source.get('is_anomaly', False)
+                is_anomaly=source.get('is_anomaly', False),
+                detection_timestamp=source.get('detection_timestamp', None)
             )
             anomalies.append(anomaly)
 
