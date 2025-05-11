@@ -16,12 +16,13 @@ class AnomalyService:
         return self.compiled_patterns[template]
 
     def check_anomaly(self, logs: List[LogEntry], event_templates: List[Event]) -> List[LogEntry]:
+        print(f"Checking {len(logs)} logs against {len(event_templates)} templates")
         unknown_logs = []
 
         for log in logs:
             log_content = log.content
             matched = False
-
+            
             for event in event_templates:
                 pattern = self._get_pattern(event.template)
                 if pattern.match(log_content):

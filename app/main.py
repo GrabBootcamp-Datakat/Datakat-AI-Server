@@ -2,6 +2,7 @@ from app.scheduler import AnomalyDetectionScheduler
 from apscheduler.schedulers.background import BackgroundScheduler
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.services.anomaly_api import router as anomaly_router
 from app.services.alert_api import router as alert_router
 
@@ -19,6 +20,19 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown()
 
 app = FastAPI(lifespan=lifespan)
+
+# --- BEGIN CORS CONFIGURATION ---
+origins = [
+    "http://localhost:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  
+    allow_credentials=True,
+    allow_methods=["*"],   
+    allow_headers=["*"],    
+)
 
 app.include_router(anomaly_router, prefix="/api/v1", tags=["anomalies"])
 app.include_router(alert_router, prefix="/api/v1")
